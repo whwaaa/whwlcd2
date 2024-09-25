@@ -57,22 +57,26 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define CS_Pin GPIO_PIN_2
-#define CS_GPIO_Port GPIOA
-#define RST_Pin GPIO_PIN_3
-#define RST_GPIO_Port GPIOA
-#define DC_Pin GPIO_PIN_4
+#define ADx_Pin GPIO_PIN_0
+#define ADx_GPIO_Port GPIOA
+#define ADy_Pin GPIO_PIN_1
+#define ADy_GPIO_Port GPIOA
+#define DC_Pin GPIO_PIN_3
 #define DC_GPIO_Port GPIOA
+#define CS_Pin GPIO_PIN_4
+#define CS_GPIO_Port GPIOA
+#define RST_Pin GPIO_PIN_6
+#define RST_GPIO_Port GPIOA
 #define BL_Pin GPIO_PIN_8
 #define BL_GPIO_Port GPIOA
-#define X__Pin GPIO_PIN_9
-#define X__GPIO_Port GPIOA
-#define X_A10_Pin GPIO_PIN_10
-#define X_A10_GPIO_Port GPIOA
-#define Y__Pin GPIO_PIN_11
-#define Y__GPIO_Port GPIOA
-#define Y_A12_Pin GPIO_PIN_12
-#define Y_A12_GPIO_Port GPIOA
+#define X_Pin GPIO_PIN_9//X+ 拉低接通VCC
+#define X_GPIO_Port GPIOA//X+
+#define X__Pin GPIO_PIN_10//X- 拉高接通GND
+#define X__GPIO_Port GPIOA//X-
+#define Y_Pin GPIO_PIN_11//Y+ 拉低接通VCC 
+#define Y_GPIO_Port GPIOA//Y+
+#define Y__Pin GPIO_PIN_12//Y- 拉高接通GND
+#define Y__GPIO_Port GPIOA//Y-
 
 /* USER CODE BEGIN Private defines */
 

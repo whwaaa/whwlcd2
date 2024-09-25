@@ -124,15 +124,26 @@ void StartDefaultTask(void const * argument)
   //64x48方形大排线lcd
   printf(" init\n");
 
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 10);
+  TOUCH_ALL_PWR_OFF;//关闭触摸电源
+  HAL_ADCEx_Calibration_Start( &hadc1 );//ADC校准
+  HAL_ADCEx_Calibration_Start( &hadc2 );//ADC校准
+  vTaskDelay(500);
+
+  // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 25);
 
   st7571_lcd_init();
   st7571_lcd_test_display();
+
   /* Infinite loop */
-  for(;;)
+
+  for(uint32_t uxgnd=0xFF; ;uxgnd--)
   {
+    
     vTaskDelay(100);
+    touch_check_x();
+    //touch_calibration_x(0x0E00, 0x300);
+    touch_check_y();
   }
   /* USER CODE END StartDefaultTask */
 }

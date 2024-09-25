@@ -1,5 +1,95 @@
 #include "bsp_st7571.h"
 
+/*----------------------- 触摸相关start ----------------------*/
+/**
+ * 检测x坐标
+ */
+void touch_check_x( void ) {
+    uint32_t vol, x;
+    #define UXVCC 0xF91//0x0E00
+    #define UXGND 0x9A3//0x8A0
+    //#define IDX 216
+
+    TOUCH_X_PWR_ON;
+
+    //启动adc
+    if ( HAL_ADC_Start( &hadc2 ) != 0 ) {
+        printf("adc2 err\n");
+    }
+    //等待转换结束
+    if ( HAL_ADC_PollForConversion( &hadc2, 1000 ) != 0 ) {
+        printf("adc2 poll err\n");
+    }
+    //查询获取adc值
+    vol = HAL_ADC_GetValue( &hadc2 );
+    x = 128*(vol-UXGND)/(UXVCC-UXGND);
+    if ( x > 128 ) x = 128;
+    x = 128 - x;
+
+    printf("vol:%04X x坐标: %d    ", vol, x);
+    
+    TOUCH_X_PWR_OFF;
+}
+void touch_calibration_x( uint32_t uxvcc, uint32_t uxgnd ) {
+    uint32_t vol,y;
+    // #define UYVCC 0xF91//0x0E00
+    // #define UYGND 0x9A3//0x8A0
+    TOUCH_X_PWR_ON;
+
+    //启动adc
+    if ( HAL_ADC_Start( &hadc2 ) != 0 ) {
+        printf("adc2 err\n");
+    }
+    //等待转换结束
+    if ( HAL_ADC_PollForConversion( &hadc2, 1000 ) != 0 ) {
+        printf("adc2 poll err\n");
+    }
+    //查询获取adc值
+    vol = HAL_ADC_GetValue( &hadc2 );
+    printf("vol:%04X ", vol);
+    vol = 128*vol/(uxvcc-uxgnd);
+
+    TOUCH_X_PWR_OFF;
+}
+/**
+ * 检测y坐标
+ */
+void touch_check_y( void ) {
+    uint32_t vol, y;
+    #define UYVCC 0xEA8//0x0E00
+    #define UYGND 0x180//0x8A0
+    TOUCH_Y_PWR_ON;
+
+    //启动adc
+    if ( HAL_ADC_Start( &hadc1 ) != 0 ) {
+        printf("adc1 err\n");
+    }
+    //等待转换结束
+    if ( HAL_ADC_PollForConversion( &hadc1, 1000 ) != 0 ) {
+        printf("adc1 poll err\n");
+    }
+    //查询获取adc值
+    vol = HAL_ADC_GetValue( &hadc1 );
+    y = 96*(vol-UYGND)/(UYVCC-UYGND);
+    if ( y > 96 ) y = 96;
+    y = 96 - y;
+
+    printf("vol:%04X y坐标: %d \n", vol, y);
+    
+    TOUCH_Y_PWR_OFF;
+}
+/**
+ * 检测按压力度
+ */
+void touch_check_f( void ) {
+    TOUCH_F_PWR_ON;
+    //启动adc
+    HAL_ADC_Start_IT( &hadc1 );
+    TOUCH_F_PWR_OFF;
+}
+/*----------------------- 触摸相关end ----------------------*/
+
+
 void st7571_writeByteCmd( uint8_t cmd ) {
     HAL_GPIO_WritePin(DC_GPIO_Port, DC_Pin, GPIO_PIN_RESET);//0命令
 	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);//CS_L
@@ -453,6 +543,7 @@ void st7571_lcd_test_display( void ) {
         for ( int i=0; i<12; i++ ) {
             st7571_writeDataToRAM(i, 0, 127, testImg[i]);
         }
+        break;
         HAL_Delay(5000);
         
         st7571_lcd_clear();
@@ -461,6 +552,7 @@ void st7571_lcd_test_display( void ) {
         writeFont_20x20(4, 32+6, DIS_STR2);
         writeLogo_0(48, 64-6);
         HAL_Delay(5000);
+        break;
     }
     // st7571_set_power_save_mode(1);//进入省电模式
     // st7571_release_power_save_mode();//退出省电模式

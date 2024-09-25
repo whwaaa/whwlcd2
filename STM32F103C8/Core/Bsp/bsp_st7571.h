@@ -6,6 +6,36 @@
 //#define COLOR_MODE  1//黑白点阵
 #define COLOR_MODE  0//4阶灰度
 
+/*----------------------- 触摸相关start ----------------------*/
+//检测X坐标
+#define TOUCH_X_PWR_ON \
+    HAL_GPIO_WritePin(X_GPIO_Port, X_Pin, GPIO_PIN_RESET);\
+    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_SET);
+//断开检测x电源
+#define TOUCH_X_PWR_OFF \
+    HAL_GPIO_WritePin(X_GPIO_Port, X_Pin, GPIO_PIN_SET);\
+    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_RESET);
+//检测y坐标
+#define TOUCH_Y_PWR_ON \
+    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_RESET);\
+    HAL_GPIO_WritePin(Y__GPIO_Port, Y__Pin, GPIO_PIN_SET);
+//断开检测y电源
+#define TOUCH_Y_PWR_OFF \
+    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_SET);\
+    HAL_GPIO_WritePin(Y__GPIO_Port, Y__Pin, GPIO_PIN_RESET);
+//Y+接VCC，X-接GND
+#define TOUCH_F_PWR_ON \
+    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_RESET);\
+    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_SET);  
+//断开检测触摸力度电源
+#define TOUCH_F_PWR_OFF \
+    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_SET);\
+    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_RESET);
+//断开所有
+#define TOUCH_ALL_PWR_OFF \
+    TOUCH_X_PWR_OFF\
+    TOUCH_Y_PWR_OFF
+/*----------------------- 触摸相关end ----------------------*/
 
 extern const uint8_t testImg[12][256];
 extern const uint32_t myFontIdx_20[6];
@@ -82,7 +112,10 @@ void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t 
 void st7571_lcd_init( void );
 void st7571_lcd_test_display( void );
 
-
+void touch_check_x( void );
+void touch_calibration_x( uint32_t uxvcc, uint32_t uxgnd );
+void touch_check_y( void );
+void touch_check_f( void );
 
 #endif /*__BSP_ST7571__H*/
 

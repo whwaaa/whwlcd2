@@ -13,6 +13,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "spi.h"
+#include "adc.h"
 #include "stm32f1xx_it.h"
 
 /* BSP ------------------------------------------------------------*/
