@@ -139,11 +139,13 @@ void StartDefaultTask(void const * argument)
 
   for(uint32_t uxgnd=0xFF; ;uxgnd--)
   {
+    uint32_t vx,vy;
     
     vTaskDelay(100);
-    touch_check_x();
+    vx = touch_check_x();
     //touch_calibration_x(0x0E00, 0x300);
-    touch_check_y();
+    vy = touch_check_y();
+    touch_check_f(vx, vy);
   }
   /* USER CODE END StartDefaultTask */
 }

@@ -112,10 +112,10 @@ void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t 
 void st7571_lcd_init( void );
 void st7571_lcd_test_display( void );
 
-void touch_check_x( void );
+uint32_t touch_check_x( void );
 void touch_calibration_x( uint32_t uxvcc, uint32_t uxgnd );
-void touch_check_y( void );
-void touch_check_f( void );
+uint32_t touch_check_y( void );
+void touch_check_f( uint32_t adcx, uint32_t adcy );
 
 #endif /*__BSP_ST7571__H*/
 

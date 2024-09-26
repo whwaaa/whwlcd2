@@ -1,15 +1,17 @@
 #include "bsp_st7571.h"
 
+#define UXVCC 0xF91//0x0E00
+#define UXGND 0x9A3//0x8A0
+#define UYVCC 0xEA8//0x0E00
+#define UYGND 0x180//0x8A0
+
 /*----------------------- 触摸相关start ----------------------*/
 /**
  * 检测x坐标
  */
-void touch_check_x( void ) {
+uint32_t touch_check_x( void ) {
     uint32_t vol, x;
-    #define UXVCC 0xF91//0x0E00
-    #define UXGND 0x9A3//0x8A0
-    //#define IDX 216
-
+    
     TOUCH_X_PWR_ON;
 
     //启动adc
@@ -29,6 +31,7 @@ void touch_check_x( void ) {
     printf("vol:%04X x坐标: %d    ", vol, x);
     
     TOUCH_X_PWR_OFF;
+    return vol;
 }
 void touch_calibration_x( uint32_t uxvcc, uint32_t uxgnd ) {
     uint32_t vol,y;
@@ -50,14 +53,14 @@ void touch_calibration_x( uint32_t uxvcc, uint32_t uxgnd ) {
     vol = 128*vol/(uxvcc-uxgnd);
 
     TOUCH_X_PWR_OFF;
+
 }
 /**
  * 检测y坐标
  */
-void touch_check_y( void ) {
+uint32_t touch_check_y( void ) {
     uint32_t vol, y;
-    #define UYVCC 0xEA8//0x0E00
-    #define UYGND 0x180//0x8A0
+    
     TOUCH_Y_PWR_ON;
 
     //启动adc
@@ -74,17 +77,36 @@ void touch_check_y( void ) {
     if ( y > 96 ) y = 96;
     y = 96 - y;
 
-    printf("vol:%04X y坐标: %d \n", vol, y);
+    printf("vol:%04X y坐标: %d    ", vol, y);
     
     TOUCH_Y_PWR_OFF;
+    return vol;
 }
 /**
  * 检测按压力度
  */
-void touch_check_f( void ) {
+void touch_check_f( uint32_t adcx, uint32_t adcy ) {
+    #define RX  1000.0f
+    #define RY  800.0f
+    uint32_t vol, rtouch;
     TOUCH_F_PWR_ON;
     //启动adc
-    HAL_ADC_Start_IT( &hadc1 );
+    if ( HAL_ADC_Start( &hadc1 ) != 0 ) {
+        printf("adc1 err\n");
+    }
+    //等待转换结束
+    if ( HAL_ADC_PollForConversion( &hadc1, 1000 ) != 0 ) {
+        printf("adc1 poll err\n");
+    }
+    //查询获取adc值
+    vol = HAL_ADC_GetValue( &hadc1 );
+
+    
+    rtouch = (float)(RX*((float)adcx-UXGND)/(4096.0f)*((4096.0f)/(float)vol-1)-(RY)*((float)adcy-UYGND)/4096.0f);
+     
+    printf("vol:%04X 按压力度: %d\n", vol, rtouch);
+
+
     TOUCH_F_PWR_OFF;
 }
 /*----------------------- 触摸相关end ----------------------*/
