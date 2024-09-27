@@ -121,31 +121,27 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
-  //64x48方形大排线lcd
-  printf(" init\n");
-
+  printf("2.3寸4阶触摸\n");
+  printf("128*96 SPI通信\n");
+  printf("CCSB4736W G12896-08\n");
+  
   TOUCH_ALL_PWR_OFF;//关闭触摸电源
   HAL_ADCEx_Calibration_Start( &hadc1 );//ADC校准
   HAL_ADCEx_Calibration_Start( &hadc2 );//ADC校准
   vTaskDelay(500);
 
-  // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 25);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);//背光PWM
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 10);//占空比
 
-  st7571_lcd_init();
-  st7571_lcd_test_display();
+  st7571_lcd_init();//初始化
+  st7571_lcd_test_display();//显示
+  touch_calibration();//触摸校准
 
   /* Infinite loop */
-
-  for(uint32_t uxgnd=0xFF; ;uxgnd--)
-  {
-    uint32_t vx,vy;
-    
+  for ( ;; ) {
     vTaskDelay(100);
-    vx = touch_check_x();
-    //touch_calibration_x(0x0E00, 0x300);
-    vy = touch_check_y();
-    touch_check_f(vx, vy);
+    touch_check_x();
+    touch_check_y();
   }
   /* USER CODE END StartDefaultTask */
 }

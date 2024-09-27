@@ -46,6 +46,9 @@ extern const uint8_t asciiFont[62][16];
 extern const uint8_t asciiFont_bold[62][16];
 extern const uint32_t myFontIdx_16[22];
 extern const uint8_t myFont_16[44][16];
+extern const uint32_t myFontIdx_24[22];
+extern const uint8_t myFont_24[22*3][24];
+extern const uint8_t graphDot[3][10];
 
 void st7571_writeByteCmd( uint8_t data );
 void st7571_writeByteData( uint8_t data );
@@ -113,9 +116,8 @@ void st7571_lcd_init( void );
 void st7571_lcd_test_display( void );
 
 uint32_t touch_check_x( void );
-void touch_calibration_x( uint32_t uxvcc, uint32_t uxgnd );
 uint32_t touch_check_y( void );
-void touch_check_f( uint32_t adcx, uint32_t adcy );
+void touch_calibration( void );
 
 #endif /*__BSP_ST7571__H*/
 
