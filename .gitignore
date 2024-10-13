@@ -19,4 +19,19 @@
 !STM32F103C8/*.ld
 !STM32F103C8/Makefile
 
+
+!PY32测试开发板_MDK/Core/**/*.h
+!PY32测试开发板_MDK/Core/**/*.c
+!PY32测试开发板_MDK/Doc/**
+!PY32测试开发板_MDK/Drivers/**/*.h
+!PY32测试开发板_MDK/Drivers/**/*.c
+!PY32测试开发板_MDK/MDK-ARM/*.s
+!PY32测试开发板_MDK/MDK-ARM/*.uvprojx
+!PY32测试开发板_MDK/Middlewares/**/*.c
+!PY32测试开发板_MDK/Middlewares/**/*.h
+
+
 /.idea/**
+
+
+
