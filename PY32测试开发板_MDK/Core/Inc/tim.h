@@ -10,7 +10,7 @@ extern "C" {
 extern TIM_HandleTypeDef htim1;
 
 void TIM1_Init(void);
-void set_pwm_configchannel_2( uint8_t pulse );
+void set_pwm_configchannel_1( uint8_t pulse );
 	
 #endif /*__TIM_H__*/
 

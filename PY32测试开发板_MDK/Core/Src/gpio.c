@@ -26,11 +26,13 @@ void GPIO_Init(void) {
   //TC
   GPIO_InitStruct.Pin = TC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(TC_GPIO_Port, &GPIO_InitStruct);
 
   HAL_NVIC_SetPriority(EXTI4_15_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+
+  //断开所有触摸检测电源
+  TOUCH_ALL_PWR_OFF;
 }
 
 

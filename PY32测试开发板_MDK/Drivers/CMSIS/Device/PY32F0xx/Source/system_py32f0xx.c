@@ -32,7 +32,7 @@
      Internal SRAM. */
 /* #define FORBID_VECT_TAB_MIGRATION */
 /* #define VECT_TAB_SRAM */
-#define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field.
+#define VECT_TAB_OFFSET  0x08000100 /*!< Vector Table base offset field.
                                    This value must be a multiple of 0x100. */
 /******************************************************************************/
 /*----------------------------------------------------------------------------
@@ -135,6 +135,7 @@ uint32_t VECT_SRAM_TAB[48]__attribute__((section(".ARM.__at_0x20000000")));
 int $Sub$$main(void)
 {
   uint8_t i;
+
   uint32_t *pFmcVect = (uint32_t *)(FLASH_BASE | VECT_TAB_OFFSET);
   for (i = 0; i < 48; i++)
   {
@@ -170,4 +171,5 @@ int __low_level_init(void)
 }
 #endif
 #endif
+
 #endif

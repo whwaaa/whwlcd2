@@ -50,7 +50,5 @@ void ADC_Init(void) {
   {
     while(1);
   }
-
-
-
 }
+

@@ -88,10 +88,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
   * @brief This function handles EXTI line4 interrupt.
   */
 void EXTI4_15_IRQHandler(void) {
-	if(__HAL_GPIO_EXTI_GET_IT(TC_Pin) != RESET) {
-	  __HAL_GPIO_EXTI_CLEAR_IT(TC_Pin);//清除中断标志
-    //开始检测坐标
-  }
+  HAL_GPIO_EXTI_IRQHandler(TC_Pin);
 }
 
 void USART1_IRQHandler(void) {

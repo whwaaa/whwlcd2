@@ -46,7 +46,7 @@ void TIM1_Init(void) {
     Error_Handler();
   }
 
-  /* 通道2开始输出PWM */
+  /* 通道1开始输出PWM */
   if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)                  
   {
     Error_Handler();
@@ -57,7 +57,7 @@ void TIM1_Init(void) {
  * 设置PWM占空比
  * pulse：0~99 数值越大屏幕越亮
  */
-void set_pwm_configchannel_2( uint8_t pulse ) {
+void set_pwm_configchannel_1( uint8_t pulse ) {
 	sConfig.Pulse = pulse;
 	HAL_TIM_PWM_ConfigChannel(&htim1, &sConfig, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);

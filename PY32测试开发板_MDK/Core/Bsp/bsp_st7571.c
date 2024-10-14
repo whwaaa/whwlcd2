@@ -1,186 +1,127 @@
 #include "bsp_st7571.h"
 
-#define UXVCC 0x0F5A
-#define UXGND 0x0A34
-#define UYVCC 0x0E80
-#define UYGND 0x01A7
+PAGE_STR page_str = {0};
 
-/*----------------------- 触摸相关start ----------------------*/
+
 /**
- * 检测x坐标
+ * 清屏
+ * 分15个页，每页数据8bit*128
  */
-uint32_t touch_check_x( void ) {
-    uint32_t vol, x;
-    
-    TOUCH_X_PWR_ON;
-
-    //启动adc
-    if ( HAL_ADC_Start( &hadc ) != 0 ) {
-        printf("adc2 err\n");
+void st7571_lcd_clear( void ) {
+    for ( uint8_t page=0; page<=15; page++ ) {
+        //设置页地址
+        st7571_set_page_address(page);
+        //设置列地址
+        st7571_set_column_address(0);
+        //写入数据
+        for ( int i=0; i<128; i++ ) {
+            #if COLOR_MODE
+            st7571_write_display_data(0x00);
+            #else
+            st7571_write_display_data(0x00);
+            st7571_write_display_data(0x00);
+            #endif
+        }
     }
-    //等待转换结束
-    if ( HAL_ADC_PollForConversion( &hadc, 1000 ) != 0 ) {
-        printf("adc2 poll err\n");
-    }
-    //查询获取adc值
-    vol = HAL_ADC_GetValue( &hadc );
-    x = 128*(vol-UXGND)/(UXVCC-UXGND);
-    if ( x > 128 ) x = 128;
-    x = 128 - x;
-
-    printf("vol:%04X x坐标:%d    ", vol, x);
-    
-    TOUCH_X_PWR_OFF;
-    return vol;
 }
 /**
- * 检测y坐标
+ * 指定位置写入数据
+ * page：取值0~15共16页数据页,第16页仅开启图标才能使用
+ * startX：起始x坐标，取值0~127
+ * endX：最后x坐标，必须大于startX，取值0~127
+ * pdata：数据长度必须大于等于(startX-endX+1)
  */
-uint32_t touch_check_y( void ) {
-    uint32_t vol, y;
-    
-    TOUCH_Y_PWR_ON;
-
-    //启动adc
-    if ( HAL_ADC_Start( &hadc ) != 0 ) {
-        printf("adc1 err\n");
-    }
-    //等待转换结束
-    if ( HAL_ADC_PollForConversion( &hadc, 1000 ) != 0 ) {
-        printf("adc1 poll err\n");
-    }
-    //查询获取adc值
-    vol = HAL_ADC_GetValue( &hadc );
-    y = 96*(vol-UYGND)/(UYVCC-UYGND);
-    if ( y > 96 ) y = 96;
-    y = 96 - y;
-
-    printf("vol:%04X y坐标:%d\n", vol, y);
-    
-    TOUCH_Y_PWR_OFF;
-    return vol;
-}
-
-static uint32_t my_abs_diff( int32_t a, int32_t b ) {
-    if ( a - b < 0 ) {
-        return b - a;
-    } else {
-        return a - b;
+void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata ) {
+    uint8_t xlen;
+    if ( startX>endX || endX==0 || endX>127 ) return;
+    if ( page > 0x0F ) return;
+    xlen = endX - startX + 1;
+    //设置页地址
+    st7571_set_page_address( page );
+    //设置列地址
+    st7571_set_column_address(startX);
+    //写入数据
+    for ( uint8_t i=0; i<xlen; i++ ) {
+        #if COLOR_MODE
+        st7571_write_display_data(pdata[i]);
+        #else
+        st7571_write_display_data(pdata[i*2]);
+        st7571_write_display_data(pdata[i*2+1]);
+        #endif
     }
 }
- 
-void touch_calibration( void ) {
-	#if 0
-    uint32_t uxvcc1, uxgnd1, uyvcc1, uygnd1;
-    uint32_t uxvcc2, uxgnd2, uyvcc2, uygnd2;
-    st7571_set_display_start_line(96);//设置开始显示的数据行
+/**
+ * LCD初始化
+ */ 
+void st7571_lcd_init( void ) {
+    //硬件复位
+    HAL_GPIO_WritePin(RST_GPIO_Port, RST_Pin, GPIO_PIN_SET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(RST_GPIO_Port, RST_Pin, GPIO_PIN_RESET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(RST_GPIO_Port, RST_Pin, GPIO_PIN_SET);
+    HAL_Delay(100);
+    
+    st7571_reset();//软件复位
+    HAL_Delay(10);
+    st7571_display_on_off(0);//display off
+    st7571_set_mode(0x0B,0x02);//FR=1011=>85HZ, BE=1,0=>booster efficiency Level-3
+    st7571_set_com_scan_direction(1);//行扫描方向(不明白,0/1设置看着没什么区别)
+    st7571_set_seg_scan_direction(1);//列扫描方向
+    st7571_set_display_start_line(96);//设置开始显示的数据行(设置96刚好对应从0页写入数据时从最顶上显示)
+    st7571_set_com0(0);//设置开始显示的数据列
+    st7571_oscillator_on();//OSC. ON
+    st7571_select_lcd_bias(0x06);//Set LCD Bias=1/9 V0
+    st7571_select_regulator_register(0x06);//Select regulator register(1+(Ra+Rb))
+    st7571_set_contrast(0x7e);//设置基准电压  EV=35 => Vop =10.556V
+    // st7571_writeByteCmd( 0xF3 );//DC-DC step up, 8 times boosting circuit 
+    // st7571_writeByteCmd( 0x67 );
+    // st7571_writeByteCmd( 0x04 );
+    // st7571_writeByteCmd( 0x93 );
+    st7571_power_control(0x04); //Power Control, VC: ON VR: OFF VF: OFF
+    HAL_Delay(200);
+    st7571_power_control(0x06); //Power Control, VC: ON VR: ON VF: OFF
+    HAL_Delay(200);
+    st7571_power_control(0x07); //Power Control, VC: ON VR: ON VF: ON
+    HAL_Delay(10);
+    st7571_extension_command_set3();//进入扩展指令3
+#if COLOR_MODE
+    st7571_ex3_set_color_mode(1);//0四阶灰度模式，1黑白模式，并退出扩展指令恢复正常模式
+#else
+    st7571_ex3_set_color_mode(0);//0四阶灰度模式，1黑白模式，并退出扩展指令恢复正常模式    
+#endif
+    st7571_display_on_off(1);//display on
+    HAL_Delay(10);
+    // st7571_entire_display_on(1);//强制开启LCD所有像素
     st7571_lcd_clear();
-    writeFont_24x24(40, 0, "校准");
-    writeFont_24x24(4, 24, "请点击屏幕");
-    writeFont_24x24(4, 48, "四角出现的");
-    writeFont_24x24(16, 72, "“圆点”");
-    // HAL_Delay(5000);
-
-    //左上角
-    printf("左上角  ");
-    st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[0]);
-    st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[1]);
-    //清
-    HAL_Delay(3000);
-    st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[2]);
-    st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[2]);
-    uxvcc1 = touch_check_x();
-    printf("uxvcc1: %04X, ", (uint16_t)uxvcc1);
-    uyvcc1 = touch_check_y();
-    printf("uyvcc1: %04X\n", (uint16_t)uyvcc1);
-
-
-    //左下角
-    printf("左下角  ");
-    st7571_writeDataToRAM(11, 0, 9, (uint8_t *)graphDot[0]);
-    st7571_writeDataToRAM(12, 0, 9, (uint8_t *)graphDot[1]);
-    //清
-    HAL_Delay(3000);
-    st7571_writeDataToRAM(11, 0, 9, (uint8_t *)graphDot[2]);
-    st7571_writeDataToRAM(12, 0, 9, (uint8_t *)graphDot[2]);
-    uxvcc2 = touch_check_x();
-    printf("uxvcc2: %04X, ", (uint16_t)uxvcc2);
-    uygnd1 = touch_check_y();
-    printf("uygnd1: %04X\n", (uint16_t)uygnd1);
-
-    //右上角
-    printf("右上角  ");
-    st7571_writeDataToRAM(0, 118, 127, (uint8_t *)graphDot[0]);
-    st7571_writeDataToRAM(1, 118, 127, (uint8_t *)graphDot[1]);
-    //清
-    HAL_Delay(3000);
-    st7571_writeDataToRAM(0, 118, 127, (uint8_t *)graphDot[2]);
-    st7571_writeDataToRAM(1, 118, 127, (uint8_t *)graphDot[2]);
-    uxgnd1 = touch_check_x();
-    printf("uxgnd1: %04X, ", (uint16_t)uxgnd1);
-    uyvcc2 = touch_check_y();
-    printf("uyvcc2: %04X\n", (uint16_t)uyvcc2);
-
-
-    //右下角
-    printf("右下角  ");
-    st7571_writeDataToRAM(11, 118, 127, (uint8_t *)graphDot[0]);
-    st7571_writeDataToRAM(12, 118, 127, (uint8_t *)graphDot[1]);
-    //清
-    HAL_Delay(3000);
-    st7571_writeDataToRAM(11, 118, 127, (uint8_t *)graphDot[2]);
-    st7571_writeDataToRAM(12, 118, 127, (uint8_t *)graphDot[2]);
-    uxgnd2 = touch_check_x();
-    printf("uxgnd2: %04X, ", (uint16_t)uxgnd2);
-    uygnd2 = touch_check_y();
-    printf("uygnd2: %04X\n", (uint16_t)uygnd2);
-
-
-    if ( my_abs_diff((int32_t)uxvcc1, (int32_t)uxvcc2) < 0xff &&
-         my_abs_diff((int32_t)uxgnd1, (int32_t)uxgnd2) < 0x1ff &&
-         my_abs_diff((int32_t)uyvcc1, (int32_t)uyvcc2) < 0xff &&
-         my_abs_diff((int32_t)uygnd1, (int32_t)uygnd2) < 0xff ) {
-        
-        printf("校验成功!\nuxvcc:%04X uxgnd:%04X uyvcc:%04X uygnd:%04X\n",
-            (uint16_t)((uxvcc1+uxvcc2)/2),
-            (uint16_t)((uxgnd1+uxgnd2)/2),
-            (uint16_t)((uyvcc1+uyvcc2)/2),
-            (uint16_t)((uygnd1+uygnd2)/2) );
-
-    } else {
-       printf("校验失败请重新尝试！\n");
-    }
-
-    printf("end\n");
-	#endif
+    // st7571_set_power_save_mode(1);//进入省电模式（省电模式屏幕会关闭，数据会隐藏）
+    // st7571_release_power_save_mode();//退出省电模式
 }
-/*----------------------- 触摸相关end ----------------------*/
-
-
-
-
+/**
+ * SPI写命令接口
+ */
 void st7571_writeByteCmd( uint8_t cmd ) {
     HAL_GPIO_WritePin(DC_GPIO_Port, DC_Pin, GPIO_PIN_RESET);//0命令
 	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);//CS_L
     HAL_SPI_Transmit( &hspi1, &cmd, 1, 1000 );
     HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);//CS_H
 }
-
+/**
+ * SPI写数据接口
+ */
 void st7571_writeByteData( uint8_t data ) {
     HAL_GPIO_WritePin(DC_GPIO_Port, DC_Pin, GPIO_PIN_SET);//1数据
 	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);//CS_L
     HAL_SPI_Transmit( &hspi1, &data, 1, 1000 );
     HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);//CS_H
 }
-
 /**
- * 显示24x24字符
+ * 任意位置显示24x24字符
  * x取值：0~127
  * y取值：0~96
  * font：显示的数据
 */
 void writeFont_24x24( uint8_t x, uint8_t y, char *font ) {
-#if 0
     uint8_t page, fontLen, yu, pNum;
     uint16_t xlen, xlen_t;
 
@@ -269,17 +210,14 @@ void writeFont_24x24( uint8_t x, uint8_t y, char *font ) {
             }
         }
     }
-#endif
 }
-
 /**
- * 显示20x20字符
+ * 任意位置显示20x20字符
  * x取值：0~127
  * y取值：0~96
  * font：显示的数据
 */
 void writeFont_20x20( uint8_t x, uint8_t y, char *font ) {
-#if 0
     uint8_t page, fontLen, yu, pNum;
     uint16_t xlen, xlen_t;
 
@@ -367,17 +305,14 @@ void writeFont_20x20( uint8_t x, uint8_t y, char *font ) {
             }
         }
     }
-#endif
 }
-
 /**
- * 显示16x16字符
+ * 任意位置显示16x16字符
  * x取值：0~127
  * y取值：0~96
  * font：显示的数据
 */
-void writeFont_16x16( uint8_t x, uint8_t y, char *font ) {
-#if 0    
+void writeFont_16x16( uint8_t x, uint8_t y, char *font ) { 
     uint8_t page, fontLen, yu, pNum;
     uint16_t xlen, xlen_t;
 
@@ -458,18 +393,15 @@ void writeFont_16x16( uint8_t x, uint8_t y, char *font ) {
             }
         }
     }
-#endif
 }
-
 /**
- * 显示8x16大小ASCII字符
+ * 任意位置显示8x16大小ASCII字符
  * x取值：0~127
  * y取值：0~96
  * data：显示的数据
  * isBold：1粗体，0非粗体
 */
-void writeFont_ASCII8x16( uint8_t x, uint8_t y, char *data, uint8_t isBold ) {
-#if 0    
+void writeFont_ASCII8x16( uint8_t x, uint8_t y, char *data, uint8_t isBold ) {  
     uint8_t page, fontLen, yu, xlen_t, (*asciiFont_t)[16], pNum;
     uint16_t xlen;
 
@@ -554,18 +486,14 @@ void writeFont_ASCII8x16( uint8_t x, uint8_t y, char *data, uint8_t isBold ) {
             }
         }
     }
-#endif
 }
-
-
 /**
- * 显示logo
+ * 任意位置显示logo
  * x取值：0~127
  * y取值：0~96(8的整数倍)
  * data：显示的数据
 */
 void writeLogo_0( uint8_t x, uint8_t y ) {
-#if 0
     uint8_t page, xlen, xlen_t, yu;
 
     xlen = 128 - x;
@@ -610,127 +538,210 @@ void writeLogo_0( uint8_t x, uint8_t y ) {
             } 
         }
     }
-#endif
 }
 
-/**
- * 清屏
- * 分15个页，每页数据8bit*128
- */
-void st7571_lcd_clear( void ) {
-    for ( uint8_t page=0; page<=15; page++ ) {
-        //设置页地址
-        st7571_set_page_address(page);
-        //设置列地址
-        st7571_set_column_address(0);
-        //写入数据
-        for ( int i=0; i<128; i++ ) {
-            #if COLOR_MODE
-            st7571_write_display_data(0x00);
-            #else
-            st7571_write_display_data(0x00);
-            st7571_write_display_data(0x00);
-            #endif
-        }
-    }
-}
 
 /**
- * 指定位置写入数据
- * page：取值0~15共16页数据页,第16页仅开启图标才能使用
- * startX：起始x坐标，取值0~127
- * endX：最后x坐标，必须大于startX，取值0~127
- * pdata：数据长度必须大于等于(startX-endX+1)
- */
-void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata ) {
-    uint8_t xlen;
-    if ( startX>endX || endX==0 || endX>127 ) return;
-    if ( page > 0x0F ) return;
-    xlen = endX - startX + 1;
-    //设置页地址
-    st7571_set_page_address( page );
-    //设置列地址
-    st7571_set_column_address(startX);
-    //写入数据
-    for ( uint8_t i=0; i<xlen; i++ ) {
-        #if COLOR_MODE
-        st7571_write_display_data(pdata[i]);
-        #else
-        st7571_write_display_data(pdata[i]);
-        st7571_write_display_data(pdata[i]);
-        #endif
-    }
-}
-
-/**
- * LCD初始化
- */ 
-void st7571_lcd_init( void ) {
-    //硬件复位
-    HAL_GPIO_WritePin(RST_GPIO_Port, RST_Pin, GPIO_PIN_SET);
-    HAL_Delay(100);
-    HAL_GPIO_WritePin(RST_GPIO_Port, RST_Pin, GPIO_PIN_RESET);
-    HAL_Delay(100);
-    HAL_GPIO_WritePin(RST_GPIO_Port, RST_Pin, GPIO_PIN_SET);
-    HAL_Delay(200);
-    
-    st7571_reset();//软件复位
-    st7571_display_on_off(0);//display off
-    st7571_set_mode(0x0B,0x02);//FR=1011=>85HZ, BE=1,0=>booster efficiency Level-3
-    st7571_set_com_scan_direction(1);//行扫描方向(不明白,0/1设置看着没什么区别)
-    st7571_set_seg_scan_direction(1);//列扫描方向
-    st7571_set_display_start_line(1);//设置开始显示的数据行
-    st7571_set_com0(0);//设置开始显示的数据列
-    st7571_oscillator_on();//OSC. ON
-    st7571_select_lcd_bias(0x06);//Set LCD Bias=1/9 V0
-    st7571_select_regulator_register(0x06);//Select regulator register(1+(Ra+Rb))
-    st7571_set_contrast(0x7e);//设置基准电压  EV=35 => Vop =10.556V
-    // st7571_writeByteCmd( 0xF3 );//DC-DC step up, 8 times boosting circuit 
-    // st7571_writeByteCmd( 0x67 );
-    // st7571_writeByteCmd( 0x04 );
-    // st7571_writeByteCmd( 0x93 );
-    st7571_power_control(0x04); //Power Control, VC: ON VR: OFF VF: OFF
-    HAL_Delay(200);
-    st7571_power_control(0x06); //Power Control, VC: ON VR: ON VF: OFF
-    HAL_Delay(200);
-    st7571_power_control(0x07); //Power Control, VC: ON VR: ON VF: ON
-    HAL_Delay(10);
-    st7571_extension_command_set3();//进入扩展指令3
-#if COLOR_MODE
-    st7571_ex3_set_color_mode(1);//0四阶灰度模式，1黑白模式，并退出扩展指令恢复正常模式
-#else
-    st7571_ex3_set_color_mode(0);//0四阶灰度模式，1黑白模式，并退出扩展指令恢复正常模式    
-#endif
-    st7571_display_on_off(1);//display on
-    // st7571_entire_display_on(1);//强制开启LCD所有像素
-    st7571_lcd_clear();
-}
-
-/**
- * 屏幕显示区: 长128 x 宽97 (分12页显示,底部多一像素,共12*8+1像素)
+ * 屏幕显示区: 长128 x 高96+1 (分12页显示,底部多一像素,共12*8+1像素)
  * 开始显示的数据行为0时,顶部是从 page 4页开始显示(若想page0页的数据在开头显示,则需要设置开始显示行为96)
  * RAM区: 长128 x 宽128 (上下数据循环显示,例如设置开始显示的数据行为7,底部会出现page 0页的数据)
 */
-void st7571_lcd_test_display( void ) {
-    st7571_set_display_start_line(96);//设置开始显示的数据行
-    for ( ;; ) {
-        st7571_lcd_clear();
-        for ( int i=0; i<12; i++ ) {
-            //st7571_writeDataToRAM(i, 0, 127, (uint8_t *)testImg[i]);
-        }
-        HAL_Delay(5000);
-        
-        st7571_lcd_clear();
-        writeFont_16x16(0, 0, DIS_STR0);
-        writeFont_16x16(0, 16, DIS_STR1);
-        writeFont_20x20(4, 32+6, DIS_STR2);
-        writeLogo_0(48, 64-6);
-        HAL_Delay(5000);
-        break;
-    }
-    // st7571_set_power_save_mode(1);//进入省电模式
-    // st7571_release_power_save_mode();//退出省电模式
+//绘制首页
+void st7571_lcd_display_home( void ) {
+    st7571_lcd_clear();
+    writeFont_16x16(0, 0, "获取屏幕开发资料");
+    writeFont_16x16(0, 16, "微信搜索公众号：");
+    writeFont_20x20(4, 32+6, "猫狗之家电子");
+    writeLogo_0(48, 64-6);
 }
+//绘制菜单页
+void st7571_lcd_display_menu( void ) {
+    st7571_lcd_clear();
+    for ( int i=0; i<10; i++ ) {
+        for ( int j=0; j<112; j++ ) {
+            page_str.ram[i][j] = 0;
+        }
+    }
+    //首页
+    for ( int i=0; i<16; i++ ) {
+        page_str.ram[4][8+i] = myFont_16[44][i];
+        page_str.ram[5][8+i] = myFont_16[45][i];
+        page_str.ram[4][24+i] = myFont_16[46][i];
+        page_str.ram[5][24+i] = myFont_16[47][i];
+    }
+    //绘画
+    for ( int i=0; i<16; i++ ) {
+        page_str.ram[4][48+i] = myFont_16[48][i];
+        page_str.ram[5][48+i] = myFont_16[49][i];
+        page_str.ram[4][64+i] = myFont_16[50][i];
+        page_str.ram[5][64+i] = myFont_16[51][i];
+    }
+    //校准
+    for ( int i=0; i<16; i++ ) {
+        page_str.ram[4][88+i] = myFont_16[52][i];
+        page_str.ram[5][88+i] = myFont_16[53][i];
+        page_str.ram[4][104+i] = myFont_16[54][i];
+        page_str.ram[5][104+i] = myFont_16[55][i];
+    }
+    //图片
+    for ( int i=0; i<16; i++ ) {
+        page_str.ram[7][48+i] = myFont_16[60][i];
+        page_str.ram[8][48+i] = myFont_16[61][i];
+        page_str.ram[7][64+i] = myFont_16[62][i];
+        page_str.ram[8][64+i] = myFont_16[63][i];
+    }
+    //顶部框
+    for ( int i=7; i<=40; i++ ) {
+        page_str.ram[3][i] |= 0x80;
+    }
+    for ( int i=47; i<=80; i++ ) {
+        page_str.ram[3][i] |= 0x80;
+        // page_str.ram[6][i] |= 0x80;
+    }
+    for ( int i=87; i<=120; i++ ) {
+        page_str.ram[3][i] |= 0x80;
+    }
+    //底部框
+    for ( int i=7; i<=40; i++ ) {
+        page_str.ram[6][i] |= 0x01;
+    }
+    for ( int i=47; i<=80; i++ ) {
+        page_str.ram[6][i] |= 0x01;
+        // page_str.ram[9][i] |= 0x01;
+    }
+    for ( int i=87; i<=120; i++ ) {
+        page_str.ram[6][i] |= 0x01;
+    }
+    //左1框
+    page_str.ram[3][7] |= 0x80;
+    page_str.ram[4][7] |= 0xFF;
+    page_str.ram[5][7] |= 0xFF;
+    page_str.ram[6][7] |= 0x01;
+    //左2框
+    page_str.ram[3][40] |= 0x80;
+    page_str.ram[4][40] |= 0xFF;
+    page_str.ram[5][40] |= 0xFF;
+    page_str.ram[6][40] |= 0x01;
+    //左3框
+    page_str.ram[3][47] |= 0x80;
+    page_str.ram[4][47] |= 0xFF;
+    page_str.ram[5][47] |= 0xFF;
+    page_str.ram[6][47] |= 0x01;
+    page_str.ram[6][47] |= 0x80;
+    page_str.ram[7][47] |= 0xFF;
+    page_str.ram[8][47] |= 0xFF;
+    page_str.ram[9][47] |= 0x01;
+    //左4框
+    page_str.ram[3][80] |= 0x80;
+    page_str.ram[4][80] |= 0xFF;
+    page_str.ram[5][80] |= 0xFF;
+    page_str.ram[6][80] |= 0x01;
+    page_str.ram[6][80] |= 0x80;
+    page_str.ram[7][80] |= 0xFF;
+    page_str.ram[8][80] |= 0xFF;
+    page_str.ram[9][80] |= 0x01;
+    //左5框
+    page_str.ram[3][87] |= 0x80;
+    page_str.ram[4][87] |= 0xFF;
+    page_str.ram[5][87] |= 0xFF;
+    page_str.ram[6][87] |= 0x01;
+    //左6框
+    page_str.ram[3][120] |= 0x80;
+    page_str.ram[4][120] |= 0xFF;
+    page_str.ram[5][120] |= 0xFF;
+    page_str.ram[6][120] |= 0x01;
+    st7571_writeDataToRAM(3, 0, 127, &page_str.ram[3][0] );
+    st7571_writeDataToRAM(4, 0, 127, &page_str.ram[4][0] );
+    st7571_writeDataToRAM(5, 0, 127, &page_str.ram[5][0] );
+    st7571_writeDataToRAM(6, 0, 127, &page_str.ram[6][0] );
+    st7571_writeDataToRAM(7, 0, 127, &page_str.ram[7][0] );
+    st7571_writeDataToRAM(8, 0, 127, &page_str.ram[8][0] );
+    st7571_writeDataToRAM(9, 0, 127, &page_str.ram[9][0] );
+}
+//绘制绘画页
+void st7571_lcd_display_painting( void ) {
+    st7571_lcd_clear();
+    writeFont_16x16(0, 0, "清屏");
+    writeFont_16x16(48, 0, "绘画");
+    writeFont_16x16(96, 0, "返回");
+    for ( int i=0; i<10; i++ ) {
+        for ( int j=0; j<112; j++ ) {
+            page_str.ram[i][j] = 0;
+        }
+    }
+    for ( int i=0; i<10; i++ ) {
+        page_str.ram[i][0] = 0xFF;
+        page_str.ram[i][111] = 0xFF;
+    }
+    for ( int i=0; i<112; i++ ) {
+        page_str.ram[0][i] |= 0x01;
+        page_str.ram[9][i] |= 0x80;
+    }
+    for ( int i=0; i<10; i++ ) {
+        st7571_writeDataToRAM(i+2, 8, 120-1, &page_str.ram[i][0] );
+    }
+}
+//清空绘画内容
+void st7571_lcd_display_painting_clear( void ) {
+    for ( int i=0; i<10; i++ ) {
+        for ( int j=0; j<112; j++ ) {
+            page_str.ram[i][j] = 0;
+        }
+    }
+    for ( int i=0; i<10; i++ ) {
+        page_str.ram[i][0] = 0xFF;
+        page_str.ram[i][111] = 0xFF;
+    }
+    for ( int i=0; i<112; i++ ) {
+        page_str.ram[0][i] |= 0x01;
+        page_str.ram[9][i] |= 0x80;
+    }
+    for ( int i=0; i<10; i++ ) {
+        st7571_writeDataToRAM(i+2, 8, 120-1, &page_str.ram[i][0] );
+    }
+}
+//绘画模式，显示绘制图像
+void st7571_painting( uint8_t x, uint8_t y ) {
+    uint8_t chu,yu;
+    //绘画区域：2~12页 8~120列 x:[8,120] y:[16,96]
+    if ( x>=8 && x<120 && y>=16 && y<96 ) {
+        x = x-8;
+        chu = (y-16)/8;
+        yu = (y-16)%8;
+        page_str.ram[chu][x] |= (1<<yu);
+        //设置页地址
+        st7571_set_page_address(chu+2);
+        //设置列地址
+        st7571_set_column_address(x+8);
+        //写入数据
+        #if COLOR_MODE
+        st7571_write_display_data(page_str.ram[chu][x]);
+        #else
+        st7571_write_display_data(page_str.ram[chu][x]);
+        st7571_write_display_data(page_str.ram[chu][x]);
+        #endif
+    }
+}
+//绘制灰度图片
+void st7571_lcd_display_img( void ) {
+    st7571_lcd_clear();
+    for ( int i=0; i<12; i++ ) {
+        st7571_writeDataToRAM(i, 0, 127, (uint8_t *)testImg[i]);
+    }
+}
+//绘制校准页面
+void st7571_lcd_display_touch_calibration( void ) {
+    st7571_lcd_clear();
+    writeFont_24x24(40, 0, "校准");
+    writeFont_24x24(4, 24, "请点击屏幕");
+    writeFont_24x24(4, 48, "四角出现的");
+    writeFont_24x24(16, 72, "“圆点”");
+    //绘制左上角圆点
+    st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[0]);
+    st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[1]);
+}
+
+
 
 
 

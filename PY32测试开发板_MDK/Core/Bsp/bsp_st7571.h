@@ -3,43 +3,23 @@
 
 #include "common.h"
 
-//#define COLOR_MODE  1//黑白点阵
-#define COLOR_MODE  0//4阶灰度
+#define PAGE_HOME                   0
+#define PAGE_MENU                   1
+#define PAGE_PAINTING               2
+#define PAGE_TOUCH_CALIBRATION      3
+#define PAGE_IMG                    4
+typedef struct _PAGE {
+    uint8_t page;
+    uint8_t ram[10][128];
+} PAGE_STR;
+extern PAGE_STR page_str;
 
-/*----------------------- 触摸相关start ----------------------*/
-//检测X坐标
-#define TOUCH_X_PWR_ON \
-    HAL_GPIO_WritePin(X_GPIO_Port, X_Pin, GPIO_PIN_RESET);\
-    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_SET);
-//断开检测x电源
-#define TOUCH_X_PWR_OFF \
-    HAL_GPIO_WritePin(X_GPIO_Port, X_Pin, GPIO_PIN_SET);\
-    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_RESET);
-//检测y坐标
-#define TOUCH_Y_PWR_ON \
-    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_RESET);\
-    HAL_GPIO_WritePin(Y__GPIO_Port, Y__Pin, GPIO_PIN_SET);
-//断开检测y电源
-#define TOUCH_Y_PWR_OFF \
-    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_SET);\
-    HAL_GPIO_WritePin(Y__GPIO_Port, Y__Pin, GPIO_PIN_RESET);
-//Y+接VCC，X-接GND
-#define TOUCH_F_PWR_ON \
-    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_RESET);\
-    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_SET);  
-//断开检测触摸力度电源
-#define TOUCH_F_PWR_OFF \
-    HAL_GPIO_WritePin(Y_GPIO_Port, Y_Pin, GPIO_PIN_SET);\
-    HAL_GPIO_WritePin(X__GPIO_Port, X__Pin, GPIO_PIN_RESET);
-//断开所有
-#define TOUCH_ALL_PWR_OFF \
-    TOUCH_X_PWR_OFF\
-    TOUCH_Y_PWR_OFF
-/*----------------------- 触摸相关end ----------------------*/
-
+/*----------------------- SPI接口 ----------------------*/
 void st7571_writeByteCmd( uint8_t data );
 void st7571_writeByteData( uint8_t data );
+/*----------------------- SPI接口end ----------------------*/
 
+/*----------------------ST7575驱动相关----------------------*/
 void st7571_set_mode( uint8_t freq, uint8_t booster );
 void st7571_write_display_data( uint8_t data );
 void st7571_set_icon( uint8_t sw );
@@ -68,13 +48,11 @@ void st7571_nop( void );
 void st7571_extension_command_set1( void );
 void st7571_extension_command_set2( void );
 void st7571_extension_command_set3( void );
-
 /*-------------------- EXTENSION COMMAND SET 1 ----------------------*/
 void st7571_ex1_increase_vop_offset( void );
 void st7571_ex1_decrease_vop_offset( void );
 void st7571_ex1_return_normal_mode( void );
 /*-------------------------------------------------------------------*/
-
 /*-------------------- EXTENSION COMMAND SET 2 ----------------------*/
 void st7571_ex2_disable_autoread( void );
 void st7571_ex2_enter_eeprom_mode( void );
@@ -87,11 +65,12 @@ void st7571_ex2_enable_write_mode( void );
 void st7571_ex2_set_write_pulse( void );
 void st7571_ex2_return_normal_mode( void );
 /*-------------------------------------------------------------------*/
-
 /*-------------------- EXTENSION COMMAND SET 3 ----------------------*/
 void st7571_ex3_set_color_mode( uint8_t gb );
 void st7571_ex3_return_normal_mode( void );
 /*-------------------------------------------------------------------*/
+/*----------------------ST7575驱动相关 end----------------------------*/
+
 
 void writeFont_20x20( uint8_t x, uint8_t y, char *font );
 void writeFont_16x16( uint8_t x, uint8_t y, char *font );
@@ -101,11 +80,16 @@ void writeFont_ASCII8x16( uint8_t x, uint8_t y, char *data, uint8_t isBold );
 void st7571_lcd_clear( void );
 void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata );
 void st7571_lcd_init( void );
-void st7571_lcd_test_display( void );
 
-uint32_t touch_check_x( void );
-uint32_t touch_check_y( void );
-void touch_calibration( void );
+void st7571_lcd_display_home( void );
+void st7571_lcd_display_menu( void );
+void st7571_lcd_display_painting( void );
+void st7571_lcd_display_painting_clear( void );
+void st7571_lcd_display_touch_calibration( void );
+void st7571_lcd_display_img( void );
+void st7571_painting( uint8_t x, uint8_t y );
+
+
 
 #endif /*__BSP_ST7571__H*/
 

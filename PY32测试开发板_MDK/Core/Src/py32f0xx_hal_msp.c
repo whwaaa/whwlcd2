@@ -67,7 +67,6 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef *hadc) {
 void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi) {
   GPIO_InitTypeDef  GPIO_InitStruct;
 
-  __HAL_RCC_GPIOB_CLK_ENABLE();                   /* GPIOB时钟使能 */
   __HAL_RCC_GPIOA_CLK_ENABLE();                   /* GPIOA时钟使能 */
   __HAL_RCC_SYSCFG_CLK_ENABLE();                  /* 使能SYSCFG时钟 */
   __HAL_RCC_SPI1_CLK_ENABLE();                    /* SPI1时钟使能 */
@@ -145,9 +144,10 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle) {
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim) {
   GPIO_InitTypeDef   GPIO_InitStruct;
   /*TIM1时钟使能 */
-  __HAL_RCC_TIM1_CLK_ENABLE();                              
+  __HAL_RCC_TIM1_CLK_ENABLE();
+  HAL_GPIO_WritePin(BL_GPIO_Port, BL_Pin, GPIO_PIN_RESET);
   /*GPIOA时钟使能 */
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   /*复用功能 */
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;                   
   /* 上拉 */
@@ -155,9 +155,9 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim) {
   /* 高速*/
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   /*GPIOB3初始化*/
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = BL_Pin;
+  GPIO_InitStruct.Alternate = GPIO_AF13_TIM1;
+  HAL_GPIO_Init(BL_GPIO_Port, &GPIO_InitStruct);
 }
 
 /************************ (C) COPYRIGHT Puya *****END OF FILE****/
