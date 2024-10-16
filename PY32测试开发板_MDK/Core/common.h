@@ -1,6 +1,9 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+//Flash空间不足，串口功能关闭Flash空间仅剩余32字节，否则需要关闭其他功能
+//#define USE_UART
+#define VERSION "V1.0.0"
 
 /* LIB ------------------------------------------------------------*/
 #include <stdio.h>

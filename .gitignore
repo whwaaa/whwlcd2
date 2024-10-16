@@ -30,6 +30,8 @@
 !PY32测试开发板_MDK/Middlewares/**/*.c
 !PY32测试开发板_MDK/Middlewares/**/*.h
 
+!字模制作/**
+!PNG图片转成4阶灰度格式/**
 
 /.idea/**
 

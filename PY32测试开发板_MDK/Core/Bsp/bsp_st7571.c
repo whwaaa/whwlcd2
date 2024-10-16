@@ -31,7 +31,7 @@ void st7571_lcd_clear( void ) {
  * endX：最后x坐标，必须大于startX，取值0~127
  * pdata：数据长度必须大于等于(startX-endX+1)
  */
-void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata ) {
+void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata, uint8_t isImg ) {
     uint8_t xlen;
     if ( startX>endX || endX==0 || endX>127 ) return;
     if ( page > 0x0F ) return;
@@ -45,8 +45,13 @@ void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t 
         #if COLOR_MODE
         st7571_write_display_data(pdata[i]);
         #else
-        st7571_write_display_data(pdata[i*2]);
-        st7571_write_display_data(pdata[i*2+1]);
+        if ( isImg ) {
+            st7571_write_display_data(pdata[i*2]);
+            st7571_write_display_data(pdata[i*2+1]);
+        } else {
+            st7571_write_display_data(pdata[i]);
+            st7571_write_display_data(pdata[i]);
+        }
         #endif
     }
 }
@@ -585,10 +590,10 @@ void st7571_lcd_display_menu( void ) {
     }
     //图片
     for ( int i=0; i<16; i++ ) {
-        page_str.ram[7][48+i] = myFont_16[60][i];
-        page_str.ram[8][48+i] = myFont_16[61][i];
-        page_str.ram[7][64+i] = myFont_16[62][i];
-        page_str.ram[8][64+i] = myFont_16[63][i];
+        page_str.ram[7][48+i] = myFont_16[62][i];
+        page_str.ram[8][48+i] = myFont_16[63][i];
+        page_str.ram[7][64+i] = myFont_16[64][i];
+        page_str.ram[8][64+i] = myFont_16[65][i];
     }
     //顶部框
     for ( int i=7; i<=40; i++ ) {
@@ -596,7 +601,7 @@ void st7571_lcd_display_menu( void ) {
     }
     for ( int i=47; i<=80; i++ ) {
         page_str.ram[3][i] |= 0x80;
-        // page_str.ram[6][i] |= 0x80;
+        page_str.ram[6][i] |= 0x80;
     }
     for ( int i=87; i<=120; i++ ) {
         page_str.ram[3][i] |= 0x80;
@@ -607,7 +612,7 @@ void st7571_lcd_display_menu( void ) {
     }
     for ( int i=47; i<=80; i++ ) {
         page_str.ram[6][i] |= 0x01;
-        // page_str.ram[9][i] |= 0x01;
+        page_str.ram[9][i] |= 0x01;
     }
     for ( int i=87; i<=120; i++ ) {
         page_str.ram[6][i] |= 0x01;
@@ -650,13 +655,9 @@ void st7571_lcd_display_menu( void ) {
     page_str.ram[4][120] |= 0xFF;
     page_str.ram[5][120] |= 0xFF;
     page_str.ram[6][120] |= 0x01;
-    st7571_writeDataToRAM(3, 0, 127, &page_str.ram[3][0] );
-    st7571_writeDataToRAM(4, 0, 127, &page_str.ram[4][0] );
-    st7571_writeDataToRAM(5, 0, 127, &page_str.ram[5][0] );
-    st7571_writeDataToRAM(6, 0, 127, &page_str.ram[6][0] );
-    st7571_writeDataToRAM(7, 0, 127, &page_str.ram[7][0] );
-    st7571_writeDataToRAM(8, 0, 127, &page_str.ram[8][0] );
-    st7571_writeDataToRAM(9, 0, 127, &page_str.ram[9][0] );
+    for ( uint8_t i=3; i<10; i++ ) {
+        st7571_writeDataToRAM(i, 0, 127, &page_str.ram[i][0], 0 );
+    }
 }
 //绘制绘画页
 void st7571_lcd_display_painting( void ) {
@@ -678,7 +679,7 @@ void st7571_lcd_display_painting( void ) {
         page_str.ram[9][i] |= 0x80;
     }
     for ( int i=0; i<10; i++ ) {
-        st7571_writeDataToRAM(i+2, 8, 120-1, &page_str.ram[i][0] );
+        st7571_writeDataToRAM(i+2, 8, 120-1, &page_str.ram[i][0], 0 );
     }
 }
 //清空绘画内容
@@ -697,7 +698,7 @@ void st7571_lcd_display_painting_clear( void ) {
         page_str.ram[9][i] |= 0x80;
     }
     for ( int i=0; i<10; i++ ) {
-        st7571_writeDataToRAM(i+2, 8, 120-1, &page_str.ram[i][0] );
+        st7571_writeDataToRAM(i+2, 8, 120-1, &page_str.ram[i][0], 0 );
     }
 }
 //绘画模式，显示绘制图像
@@ -725,9 +726,13 @@ void st7571_painting( uint8_t x, uint8_t y ) {
 //绘制灰度图片
 void st7571_lcd_display_img( void ) {
     st7571_lcd_clear();
+    #if COLOR_MODE//0灰度1黑白
+    writeLogo_0(48, 32);//居中显示
+    #else
     for ( int i=0; i<12; i++ ) {
-        st7571_writeDataToRAM(i, 0, 127, (uint8_t *)testImg[i]);
+        st7571_writeDataToRAM(i, 0, 127, (uint8_t *)testImg[i], 1);
     }
+    #endif
 }
 //绘制校准页面
 void st7571_lcd_display_touch_calibration( void ) {
@@ -737,8 +742,8 @@ void st7571_lcd_display_touch_calibration( void ) {
     writeFont_24x24(4, 48, "四角出现的");
     writeFont_24x24(16, 72, "“圆点”");
     //绘制左上角圆点
-    st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[0]);
-    st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[1]);
+    st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[0], 0);
+    st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[1], 0);
 }
 
 

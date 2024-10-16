@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+#define COLOR_MODE 0//0四阶灰度模式，1黑白模式，并退出扩展指令恢复正常模式
+
 #define PAGE_HOME                   0
 #define PAGE_MENU                   1
 #define PAGE_PAINTING               2
@@ -78,7 +80,7 @@ void writeFont_24x24( uint8_t x, uint8_t y, char *font );
 void writeLogo_0( uint8_t x, uint8_t y );
 void writeFont_ASCII8x16( uint8_t x, uint8_t y, char *data, uint8_t isBold );
 void st7571_lcd_clear( void );
-void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata );
+void st7571_writeDataToRAM( uint8_t page, uint8_t startX, uint8_t endX, uint8_t *pdata, uint8_t isImg );
 void st7571_lcd_init( void );
 
 void st7571_lcd_display_home( void );

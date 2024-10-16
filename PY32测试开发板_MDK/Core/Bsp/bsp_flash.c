@@ -34,7 +34,9 @@ void read_data_from_flash( void ) {
 		udata.uyVcc = INIT_UYVCC;
 		udata.uyGnd = INIT_UYGND;
 	}
+	#ifdef USE_UART
 	printf("读取到校准参数：uxVcc:%d uxGnd:%d uyVcc:%d uyGnd:%d\n", udata.uxVcc, udata.uxGnd, udata.uyVcc, udata.uyGnd);
+	#endif
 }
 
 //写入数据到flash

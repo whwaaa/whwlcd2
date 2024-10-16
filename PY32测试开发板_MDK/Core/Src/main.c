@@ -31,7 +31,7 @@
 /* Private function prototypes -----------------------------------------------*/
 static void APP_SystemClockConfig(void);
 //重新定位中断向量表VECT_TAB_OFFSET到0x08000100
-static const char version[256]__attribute__((at(0x08000000)))= "V1.0.0";
+//static const char version[256]__attribute__((at(0x08000000)))= "V1.0.0";
 
 /**
   * @brief  The application entry point
@@ -46,11 +46,15 @@ int main(void)
 	APP_SystemClockConfig();
   GPIO_Init();
   TIM1_Init();
+  #ifdef USE_UART
   UART1_Init();
+  #endif
   SPI_Init();
 	ADC_Init();
 
+  #ifdef USE_UART
   printf("感谢关注猫狗之家电子！\n更多产品和教程正在开发中敬请期待！\n\n2.3寸4阶触摸\n128*96 SPI通信\nCCSB4736W G12896-08\n");
+  #endif
 
   TOUCH_ALL_PWR_OFF;//关闭触摸电源
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);//背光PWM
@@ -64,6 +68,7 @@ int main(void)
   
   /* Infinite loop */
   while (1) {
+    
     if ( press_str.pressSta ) {//触摸中断里置位pressSta状态
       press_str.pressSta = 0;
       touch_check_x();
@@ -89,28 +94,27 @@ int main(void)
       
       //菜单模式
       if ( page_str.page == PAGE_MENU ) {
-        if ( press_str.y>31 && press_str.y<=64 ) {
-          //首页按钮区域：x:[7,40] y:[31,64]
+        if ( press_str.y>31 && press_str.y<=48 ) {
+          //首页按钮区域：x:[7,40] y:[31,48]
           if ( press_str.x>7 && press_str.x<=40 ) {
             page_str.page = PAGE_HOME;
             st7571_lcd_display_home();
 
-          //绘画按钮区域：x:[47,80] y:[31,64]
+          //绘画按钮区域：x:[47,80] y:[31,48]
           } else if ( press_str.x>47 && press_str.x<=80 ) {
             page_str.page = PAGE_PAINTING;
             st7571_lcd_display_painting();
 
-          //校准按钮区域：x:[87,120] y:[31,64]
+          //校准按钮区域：x:[87,120] y:[31,48]
           } else if ( press_str.x>87 && press_str.x<=120 ) {
             page_str.page = PAGE_TOUCH_CALIBRATION;
             st7571_lcd_display_touch_calibration();
-          
-          //图片按钮区域：x:[87,120] y:[31,64]
-          } else if ( press_str.x>87 && press_str.x<=120 ) {
-            page_str.page = PAGE_IMG;
-            st7571_lcd_display_img();
-
           }
+          
+        //图片按钮区域：x:[47,80] y:[55,64]
+        } else if ( press_str.x>47 && press_str.x<=80 && press_str.y>55 && press_str.y<=71 ) {
+          page_str.page = PAGE_IMG;
+          st7571_lcd_display_img();
         }
         WAITING_PRESS_OFF(1);//等待松手
         continue;
@@ -124,39 +128,39 @@ int main(void)
           press_str.uxVcc1 = touch_check_x();
           press_str.uyVcc1 = touch_check_y();
           //清除左上角
-          st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[2]);
-          st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[2]);
+          st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[2], 0);
+          st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[2], 0);
           //绘制左下角圆点
-          st7571_writeDataToRAM(11, 0, 9, (uint8_t *)graphDot[0]);
-          st7571_writeDataToRAM(12, 0, 9, (uint8_t *)graphDot[1]);
+          st7571_writeDataToRAM(11, 0, 9, (uint8_t *)graphDot[0], 0);
+          st7571_writeDataToRAM(12, 0, 9, (uint8_t *)graphDot[1], 0);
         } else if ( press_str.calibrationNum == 2 ) {
           //获取端点电压
           press_str.uxVcc2 = touch_check_x();
           press_str.uyGnd1 = touch_check_y();
           //清除左下角圆点
-          st7571_writeDataToRAM(11, 0, 9, (uint8_t *)graphDot[2]);
-          st7571_writeDataToRAM(12, 0, 9, (uint8_t *)graphDot[2]);
+          st7571_writeDataToRAM(11, 0, 9, (uint8_t *)graphDot[2], 0);
+          st7571_writeDataToRAM(12, 0, 9, (uint8_t *)graphDot[2], 0);
           //绘制右下角圆点
-          st7571_writeDataToRAM(11, 118, 127, (uint8_t *)graphDot[0]);
-          st7571_writeDataToRAM(12, 118, 127, (uint8_t *)graphDot[1]);
+          st7571_writeDataToRAM(11, 118, 127, (uint8_t *)graphDot[0], 0);
+          st7571_writeDataToRAM(12, 118, 127, (uint8_t *)graphDot[1], 0);
         } else if ( press_str.calibrationNum == 3 ) {
           //获取端点电压
           press_str.uxGnd1 = touch_check_x();
           press_str.uyGnd2 = touch_check_y();
           //清除右下角圆点
-          st7571_writeDataToRAM(11, 118, 127, (uint8_t *)graphDot[2]);
-          st7571_writeDataToRAM(12, 118, 127, (uint8_t *)graphDot[2]);
+          st7571_writeDataToRAM(11, 118, 127, (uint8_t *)graphDot[2], 0);
+          st7571_writeDataToRAM(12, 118, 127, (uint8_t *)graphDot[2], 0);
           //绘制右上角圆点
-          st7571_writeDataToRAM(0, 118, 127, (uint8_t *)graphDot[0]);
-          st7571_writeDataToRAM(1, 118, 127, (uint8_t *)graphDot[1]);
+          st7571_writeDataToRAM(0, 118, 127, (uint8_t *)graphDot[0], 0);
+          st7571_writeDataToRAM(1, 118, 127, (uint8_t *)graphDot[1], 0);
         } else if ( press_str.calibrationNum == 4 ) {
           press_str.calibrationNum = 0;
           //获取端点电压
           press_str.uxGnd2 = touch_check_x();
           press_str.uyVcc2 = touch_check_y();
           //清除右上角圆点
-          st7571_writeDataToRAM(0, 118, 127, (uint8_t *)graphDot[2]);
-          st7571_writeDataToRAM(1, 118, 127, (uint8_t *)graphDot[2]);
+          st7571_writeDataToRAM(0, 118, 127, (uint8_t *)graphDot[2], 0);
+          st7571_writeDataToRAM(1, 118, 127, (uint8_t *)graphDot[2], 0);
           if ( my_abs_diff((int32_t)press_str.uxVcc1, (int32_t)press_str.uxVcc2) < 0xff &&
               my_abs_diff((int32_t)press_str.uxGnd1, (int32_t)press_str.uxGnd2) < 0xff &&
               my_abs_diff((int32_t)press_str.uyVcc1, (int32_t)press_str.uyVcc2) < 0xff &&
@@ -166,22 +170,26 @@ int main(void)
               udata.uxGnd = (uint16_t)(((uint32_t)press_str.uxGnd1+(uint32_t)press_str.uxGnd2)/2);
               udata.uyVcc = (uint16_t)(((uint32_t)press_str.uyVcc1+(uint32_t)press_str.uyVcc2)/2);
               udata.uyGnd = (uint16_t)(((uint32_t)press_str.uyGnd1+(uint32_t)press_str.uyGnd1)/2);
+              #ifdef USE_UART
               printf("校验成功!\nuxvcc:%04X uxgnd:%04X uyvcc:%04X uygnd:%04X\n",
                   press_str.uxVcc1, press_str.uxGnd1, press_str.uyVcc1, press_str.uyGnd2);
+              #endif
               //校验值存入flash
               write_data_into_flash();
               page_str.page = PAGE_MENU;
               st7571_lcd_display_menu();//菜单
             
           } else {//失败重新校验
+            #ifdef USE_UART
             printf("校验失败请重新尝试！\n");
             printf("uxVcc1:%04X uxVcc2:%04X uxGnd1:%04X uxGnd2:%04X\nuyVcc1:%04X uyVcc2:%04X uyGnd1:%04X uyGnd2:%04X\n",
               (uint16_t)press_str.uxVcc1, (uint16_t)press_str.uxVcc2, (uint16_t)press_str.uxGnd1, (uint16_t)press_str.uxGnd2,
               (uint16_t)press_str.uyVcc1, (uint16_t)press_str.uyVcc2, (uint16_t)press_str.uyGnd1, (uint16_t)press_str.uyGnd2
             );
+            #endif
             //绘制左上角圆点
-            st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[0]);
-            st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[1]);
+            st7571_writeDataToRAM(0, 0, 9, (uint8_t *)graphDot[0], 0);
+            st7571_writeDataToRAM(1, 0, 9, (uint8_t *)graphDot[1], 0);
           } 
         }
         TOUCH_PRESS_START;/*打开接通电源*/

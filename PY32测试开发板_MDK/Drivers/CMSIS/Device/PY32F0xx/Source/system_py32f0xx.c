@@ -32,7 +32,7 @@
      Internal SRAM. */
 /* #define FORBID_VECT_TAB_MIGRATION */
 /* #define VECT_TAB_SRAM */
-#define VECT_TAB_OFFSET  0x08000100 /*!< Vector Table base offset field.
+#define VECT_TAB_OFFSET  0x0 /*!< Vector Table base offset field.
                                    This value must be a multiple of 0x100. */
 /******************************************************************************/
 /*----------------------------------------------------------------------------
